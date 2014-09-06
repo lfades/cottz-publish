@@ -35,6 +35,9 @@ publishWithRelations = function (sub, options, callback) {
 		} else if(!observes[_id])
 			observes[_id] = [];
 
+		// make parameter is a callback
+
+		// adds a new cursor in a different collection to the main
 		_add.cursor = function (cursor, cursorName, make) {
 			if(!cursorName)
 				cursorName = cursor._cursorDescription.collectionName;
@@ -42,9 +45,6 @@ publishWithRelations = function (sub, options, callback) {
 			var observe = cursor.observeChanges({
 				added: function (id, doc) {
 					var cb = make ? make(id, doc): null;
-					// Cuando la colección que va antes que esta se ejecuta de nuevo por un cambio 
-					// es muy probable que esta se vuelva a ejecutar, para eso nos aseguramos de que 
-					// cuando ocurra sea un changed en lugar de un added otra ves.
 					sub.added(cursorName, id, cb || doc);
 				},
 				changed: function (id, doc) {
@@ -59,6 +59,8 @@ publishWithRelations = function (sub, options, callback) {
 			observes[_id].push(observe);
 		};
 
+		// designed to change something in the master document while the 'make' is executed
+		// changes to the document are sent to the main document with the return of the 'make'
 		_add.changeParentDoc = function (cursor, make) {
 			var result,
 			observe = cursor.observe({
@@ -76,6 +78,9 @@ publishWithRelations = function (sub, options, callback) {
 			return result;
 		};
 
+		// returns an array of elements with all documents in the cursor
+		// when there is a change it will update the element change in the resulting array
+		// and send it back to the collection
 		_add.group = function (cursor, make, field, options) {
 			var result = [];
 			if(options) {
@@ -114,6 +119,11 @@ publishWithRelations = function (sub, options, callback) {
 			return result;
 		};
 
+		// reactively change a field in the main document
+		// is designed to handle only 1 document
+		// returns the document found in the cursor, if the document _id is equal to a previous
+		// query (query assumes that is the _id) returns the document from the previous query 
+		// again without performing the same query and when a change will update everyone calling parameter onChanged
 		_add.field = function (cursor, query, onChanged) {
 			var result = results[query];
 			if(result) {
@@ -157,7 +167,8 @@ publishWithRelations = function (sub, options, callback) {
 			return result;
 		};
 		
-		// is in testing
+		// designed to paginate a list, works in conjunction with the methods
+		// do not call back to the main callback, only the array is changed in the collection
 		_add.paginate = function (field, limit) {
 			var crossbar = DDPServer._InvalidationCrossbar,
 				copy = parentDoc[field],
@@ -192,15 +203,13 @@ publishWithRelations = function (sub, options, callback) {
 	};
 
 	var cursorObserveChanges = cursor.observeChanges({
-		// Siempre que haya un cambio se vuelve a llamar al callback
-		// para que formule de nuevo los datos con la información nueva
 		added: function (id, doc) {
 			addStarted = false;
 			_add(id, doc);
 		},
 		changed: function (id, doc) {
 			addStarted = true;
-			// el true es para indicar al callback que el documento a cambiado
+			// the true is indicate to the callback that the doc has changed
 			_add(id, doc, true);
 		},
 		removed: function (id) {
