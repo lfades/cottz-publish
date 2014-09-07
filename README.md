@@ -105,6 +105,7 @@ Meteor.publish('author', function (authorId) {
 ```
 
 ### publishWithRelations (this, options, callback)
+* You can edit the document directly (doc.property = 'some') or send it in the return.
 * **this** is the this of the publication
 * **options** is an object like this: `{cursor: Authors.find(), cursorName: 'authors'}` or just a cursor
 * **callback** receives 3 parameters: (`id`, `doc`, `changed`)
@@ -115,6 +116,7 @@ after starting a publishWithRelations you can use the methods in `this` within t
 ### this.cursor (cursor, cursorName, callback (id, doc, changed))
 publishes a cursor for the collection in `cursorName`, Only the first parameter is required, you can send the callback as the second parameter. If you send a callback you can use `this` again.
 * **Note:** do not use in this.cursor() the this of publishWithRelations unless necessary
+* You can edit the document directly (doc.property = 'some') or send it in the return
 
 ### this.changeParentDoc (cursor, callback)
 designed to change something in the master document while the `callback` is executed. Changes to the document are sent to the main document with the return of the `callback`
