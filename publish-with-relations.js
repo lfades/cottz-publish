@@ -26,9 +26,7 @@ publishWithRelations = function (sub, options, callback) {
 	if(!cursor)
 		throw new Error("you're not sending the cursor");
 
-	function _add (_id, parentDoc) {
-		var _add = {};
-		
+	function _add (_id, name) {
 		if(addStarted) {
 			stopObserves(observes[_id]);
 			observes[_id] = [];
@@ -38,21 +36,31 @@ publishWithRelations = function (sub, options, callback) {
 		// make parameter is a callback
 
 		// adds a new cursor in a different collection to the main
-		_add.cursor = function (cursor, cursorName, make) {
-			if(!cursorName)
+		this.cursor = function (cursor, cursorName, make) {
+			var type = typeof cursorName == 'function'
+			if(!cursorName || type) {
+				if(type)
+					make = cursorName;
+
 				cursorName = cursor._cursorDescription.collectionName;
+			}
 			
 			var observe = cursor.observeChanges({
 				added: function (id, doc) {
-					var cb = make ? make(id, doc): null;
+					var cb = make ? make.call(new _add(id, cursorName), id, doc): null;
 					sub.added(cursorName, id, cb || doc);
 				},
 				changed: function (id, doc) {
-					var cb = make ? make(id, doc): null;
+					var cb = make ? make.call(new _add(id, cursorName), id, doc, true): null;
 					sub.changed(cursorName, id, cb || doc);
 				},
 				removed: function (id) {
 					sub.removed(cursorName, id);
+					var obv = observes[id];
+					if(obv) {
+						stopObserves(obv);
+						delete observes[id];
+					}
 				}
 			});
 
@@ -61,7 +69,7 @@ publishWithRelations = function (sub, options, callback) {
 
 		// designed to change something in the master document while the 'make' is executed
 		// changes to the document are sent to the main document with the return of the 'make'
-		_add.changeParentDoc = function (cursor, make) {
+		this.changeParentDoc = function (cursor, make) {
 			var result,
 			observe = cursor.observe({
 				added: function (doc) {
@@ -81,7 +89,7 @@ publishWithRelations = function (sub, options, callback) {
 		// returns an array of elements with all documents in the cursor
 		// when there is a change it will update the element change in the resulting array
 		// and send it back to the collection
-		_add.group = function (cursor, make, field, options) {
+		this.group = function (cursor, make, field, options) {
 			var result = [];
 			if(options) {
 				var sort = options.sort,
@@ -124,7 +132,7 @@ publishWithRelations = function (sub, options, callback) {
 		// returns the document found in the cursor, if the document _id is equal to a previous
 		// query (query assumes that is the _id) returns the document from the previous query 
 		// again without performing the same query and when a change will update everyone calling parameter onChanged
-		_add.field = function (cursor, query, onChanged) {
+		this.field = function (cursor, query, onChanged) {
 			var result = results[query];
 			if(result) {
 				result._id.push(_id);
@@ -169,7 +177,7 @@ publishWithRelations = function (sub, options, callback) {
 		
 		// designed to paginate a list, works in conjunction with the methods
 		// do not call back to the main callback, only the array is changed in the collection
-		_add.paginate = function (field, limit) {
+		this.paginate = function (field, limit) {
 			var crossbar = DDPServer._InvalidationCrossbar,
 				copy = parentDoc[field],
 				userId = sub.userId;
@@ -192,8 +200,12 @@ publishWithRelations = function (sub, options, callback) {
 
 			observes[_id].push(listener);
 		};
+	}
 
-		var cb = callback.call(_add, _id, parentDoc, addStarted);
+	function _sendData (_id, parentDoc) {
+		var _addData = new _add(_id, name);
+
+		var cb = callback.call(_addData, _id, parentDoc, addStarted);
 		if(addStarted)
 			sub.changed(name, _id, cb || parentDoc);
 		else
@@ -203,14 +215,16 @@ publishWithRelations = function (sub, options, callback) {
 	};
 
 	var cursorObserveChanges = cursor.observeChanges({
+		// Siempre que haya un cambio se vuelve a llamar al callback
+		// para que formule de nuevo los datos con la información nueva
 		added: function (id, doc) {
 			addStarted = false;
-			_add(id, doc);
+			_sendData(id, doc);
 		},
 		changed: function (id, doc) {
 			addStarted = true;
 			// the true is indicate to the callback that the doc has changed
-			_add(id, doc, true);
+			_sendData(id, doc, true);
 		},
 		removed: function (id) {
 			sub.removed(name, id);
