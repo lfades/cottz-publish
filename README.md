@@ -12,7 +12,7 @@ $ meteor add cottz:publish-with-relations
 provides a number of methods to easily manipulate data using internally observe and observeChanges in the server
 
 ## Quick Start
-assuming that we have a collection of authors and other books with the following structure
+Assuming we have the following collections
 ```js
 // Authors
 {
