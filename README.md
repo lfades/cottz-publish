@@ -19,7 +19,8 @@ Assuming we have the following collections
   _id: 'someAuthorId',
   name: 'Luis',
   profile: 'someProfileId',
-  bio: 'I am a very good and happy author'
+  bio: 'I am a very good and happy author',
+  interests: ['writing', 'reading', *others*]
 }
 
 // Reviews
@@ -41,7 +42,7 @@ Assuming we have the following collections
 {
   _id: 'someCommentId',
   bookId: 'someBookId',
-  text: 'This book is betther than meteor for pros :O'
+  text: 'This book is better than meteor for pros :O'
 }
 ```
 I want publish the autor with his books
@@ -103,6 +104,33 @@ Meteor.publish('author', function (authorId) {
 });
 // doc.reviews = [{data}, {data}]
 ```
+To finish I want to show only some interests of the author
+```js
+Meteor.publish('author', function (authorId) {
+  publishWithRelations(this, Authors.find(authorId), function (id, doc) {
+    this.cursor(Books.find({authorId: id}), function (id, doc) {
+      this.cursor(Comments.find({bookId: id}));
+    });
+    
+    doc.profile = this.changeParentDoc(Profiles.find(doc.profile), function (profile) {
+      return profile;
+    });
+    
+    doc.reviews = this.group(Reviews.find({authorId: id}), function (doc, index) {
+      return doc;     
+    }, 'reviews');
+    
+    this.paginate('interests', 5);
+  });
+  
+  return this.ready();
+});
+// doc.reviews = [{data}, {data}]
+
+// Client
+// send true increases by 10 the interests and false decreases
+Meteor.call('changePagination', 'interests', true);
+```
 
 ### publishWithRelations (this, options, callback)
 * You can edit the document directly (doc.property = 'some') or send it in the return.
@@ -127,6 +155,9 @@ returns an array of elements with all documents in the cursor. When there is a c
 * **callback** receive (`doc`, `atIndex`) when is added and (`doc`, `atIndex`, `oldDoc`) when is changed
 * **field** is the field in the main document that has the array
 * **options (not required)** is an object like this: `{sort: array, sortField: '_id'}` implements changes based on the position within the `sort`. `sort` is an array of values and `sortField` is the field of the document where they are, by default is the _id
+
+### this.paginate (field, limit)
+page within an array without re run the publication or callback
 
 ## publishCursor (cursor, this, collectionName)
 publishes a cursor, `collectionName` is not required
