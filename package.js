@@ -1,7 +1,7 @@
 Package.describe({
   summary: "edit your documents before sending them with PublishWithRelations",
-  version: "1.0.0",
-  git: ""
+  version: "1.5.0",
+  git: "https://github.com/Goluis/meteor-publish-with-relations.git"
 });
 
 Package.onUse(function(api) {
