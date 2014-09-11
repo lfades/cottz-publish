@@ -128,7 +128,7 @@ Meteor.publish('author', function (authorId) {
 // doc.reviews = [{data}, {data}]
 
 // Client
-// send true increases by 10 the interests and false decreases
+// send true increases by 5 the interests and false decreases
 Meteor.call('changePagination', 'interests', true);
 ```
 
@@ -158,6 +158,8 @@ returns an array of elements with all documents in the cursor. When there is a c
 
 ### this.paginate (field, limit)
 page within an array without re run the publication or callback
+* you must have a user logged
+* **Meteor.call('changePagination', 'field', boolean)** changes the pagination in the `field` with the `boolean`, true increases and false decreases
 
 ## publishCursor (cursor, this, collectionName)
 publishes a cursor, `collectionName` is not required
