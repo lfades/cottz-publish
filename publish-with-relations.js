@@ -177,28 +177,33 @@ publishWithRelations = function (sub, options, callback) {
 		
 		// designed to paginate a list, works in conjunction with the methods
 		// do not call back to the main callback, only the array is changed in the collection
-		this.paginate = function (field, limit) {
+		this.paginate = function (fieldData, limit, infinite) {
 			var crossbar = DDPServer._InvalidationCrossbar,
-				copy = parentDoc[field],
-				userId = sub.userId;
+				field = Object.keys(fieldData)[0],
+				copy = _.clone(fieldData)[field],
+				max = copy.length,
+				id = sub.connection.id;
 
-			parentDoc[field] = copy.slice(skip, skip + limit);
+			fieldData[field] = copy.slice(skip, skip + limit);
 
-			var listener = crossbar.listen({userId: userId, field: field}, function (data) {
-				if(userId == data.userId && addStarted) {
-					if(data.inc)
+			if(infinite)
+				skip += 10;
+
+			var listener = crossbar.listen({connection: id, field: field}, function (data) {
+				if(id == data.connection && addStarted) {
+					if(data.inc && limit < max)
 						skip += limit;
-					else if(skip > 10)
+					else if(skip > limit)
 						skip -= limit;
 
-					var changes = {};
-					changes[field] = copy.slice(skip, skip + limit);
-
-					sub.changed(name, _id, changes);
+					fieldData[field] = infinite ? copy.slice(0, skip): copy.slice(skip, skip + limit);
+					sub.changed(name, _id, fieldData);
 				}
 			});
 
 			observes[_id].push(listener);
+
+			return fieldData[field];
 		};
 	}
 

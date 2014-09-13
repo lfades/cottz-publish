@@ -120,7 +120,7 @@ Meteor.publish('author', function (authorId) {
       return doc;     
     }, 'reviews');
     
-    this.paginate('interests', 5);
+    doc.interests = this.paginate({interests: doc.interests}, 5);
   });
   
   return this.ready();
@@ -156,10 +156,13 @@ returns an array of elements with all documents in the cursor. When there is a c
 * **field** is the field in the main document that has the array
 * **options (not required)** is an object like this: `{sort: array, sortField: '_id'}` implements changes based on the position within the `sort`. `sort` is an array of values and `sortField` is the field of the document where they are, by default is the _id
 
-### this.paginate (field, limit)
+### this.paginate (field, limit, infinite)
 page within an array without re run the publication or callback
-* you must have a user logged
+* **field** is an object where the key is the field in the document and the value an array
+* **limit** the total number of values in the array to show
+* **infinite** if true the above values are not removed when the paging is increased
 * **Meteor.call('changePagination', 'field', boolean)** changes the pagination in the `field` with the `boolean`, true increases and false decreases
+* returns the paginated array, be sure to change it in the document
 
 ## publishCursor (cursor, this, collectionName)
 publishes a cursor, `collectionName` is not required
