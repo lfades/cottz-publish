@@ -193,7 +193,7 @@ publishWithRelations = function (sub, options, callback) {
 				if(id == data.connection && addStarted) {
 					if(data.inc && limit < max)
 						skip += limit;
-					else if(skip > limit)
+					else if(skip >= limit)
 						skip -= limit;
 
 					fieldData[field] = infinite ? copy.slice(0, skip): copy.slice(skip, skip + limit);
