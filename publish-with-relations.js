@@ -191,7 +191,7 @@ publishWithRelations = function (sub, options, callback) {
 
 			var listener = crossbar.listen({connection: id, field: field}, function (data) {
 				if(id == data.connection && addStarted) {
-					if(data.inc && limit < max)
+					if(data.inc && skip < max)
 						skip += limit;
 					else if(skip >= limit)
 						skip -= limit;

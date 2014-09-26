@@ -1,6 +1,6 @@
 Package.describe({
   summary: "Edit the documents to your liking before sending",
-  version: "1.6.1",
+  version: "1.6.2",
   git: "https://github.com/Goluis/meteor-publish-with-relations.git"
 });
 
