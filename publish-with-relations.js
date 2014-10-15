@@ -1,8 +1,22 @@
-publishCursor = function (cursor, sub, collectionName) {
+function publish () {};
+
+publish.prototype.cursor = function (cursor, sub, collectionName) {
 	if(!collectionName)
 		collectionName = cursor._cursorDescription.collectionName;
 	Meteor.Collection._publishCursor(cursor, sub, collectionName);
 };
+publishCursor = publish.prototype.cursor;
+
+function observeCursor (sub, cursor, callbacks) {
+	var observeHandle = cursor.observe(callbacks);
+
+	sub.onStop(function () {
+		observeHandle.stop();
+	});
+
+	return observeHandle;
+};
+publish.prototype.observe = observeCursor;
 /******************************************************************************************************
 //// PUBLISH WITH RELATIONS \\\\
 *******************************************************************************************************/
@@ -15,7 +29,7 @@ function stopObserves (docObserves) {
 	//});
 };
 
-publishWithRelations = function (sub, options, callback) {
+publish.prototype.relations = function (sub, options, callback) {
 	var observes = [],
 		cursor = options.cursor || options,
 		name = options.name || cursor._cursorDescription.collectionName,
@@ -174,6 +188,10 @@ publishWithRelations = function (sub, options, callback) {
 			result._id = query;
 			return result;
 		};
+
+		this.observe = function (sub, cursor, callbacks) {
+			observes[_id].push(observeCursor(sub, cursor, callbacks));
+		};
 		
 		// designed to paginate a list, works in conjunction with the methods
 		// do not call back to the main callback, only the array is changed in the collection
@@ -250,4 +268,9 @@ publishWithRelations = function (sub, options, callback) {
 
 	// I do not think it necessary to send the Ready from here
 	// return sub.ready();
+	return cursorObserveChanges;
 };
+
+publishWithRelations = publish.prototype.relations;
+
+Publish = new publish();
