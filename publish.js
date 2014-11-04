@@ -58,6 +58,7 @@ _.extend(publish.prototype, {
 			} else if(!observes[_id])
 				observes[_id] = [];
 
+			this._id = _id;
 			this.name = name;
 			this.newLiveQuery = function (observe) {
 				observes[_id].push(observe);
@@ -107,7 +108,8 @@ _.extend(publish.prototype, {
 			// designed to change something in the master document while the 'make' is executed
 			// changes to the document are sent to the main document with the return of the 'make'
 			changeParentDoc: function (cursor, make) {
-				var result,
+				var _id = this._id, result;
+
 				observe = cursor.observe({
 					added: function (doc) {
 						result = make(doc);
@@ -126,7 +128,8 @@ _.extend(publish.prototype, {
 			// when there is a change it will update the element change in the resulting array
 			// and send it back to the collection
 			group: function (cursor, make, field, options) {
-				var result = [];
+				var _id = this._id, result = [];
+
 				if(options) {
 					var sort = options.sort,
 						sortField = options.sortField;
@@ -168,7 +171,8 @@ _.extend(publish.prototype, {
 			// query (query assumes that is the _id) returns the document from the previous query 
 			// again without performing the same query and when a change will update everyone calling parameter onChanged
 			field: function (cursor, query, onChanged) {
-				var result = results[query];
+				var _id = this._id, result = results[query];
+
 				if(result) {
 					result._id.push(_id);
 					return result;
@@ -188,8 +192,8 @@ _.extend(publish.prototype, {
 								var changes = onChanged(doc, oldDoc),
 									_ids = results[docId]._id;
 
-								for (var _id in _ids)
-									sub.changed(name, _ids[_id], changes);
+								for (var id in _ids)
+									sub.changed(name, _ids[id], changes);
 
 								doc._id = _ids
 								results[docId] = doc;
@@ -212,7 +216,8 @@ _.extend(publish.prototype, {
 			// designed to paginate a list, works in conjunction with the methods
 			// do not call back to the main callback, only the array is changed in the collection
 			paginate: function (fieldData, limit, infinite) {
-				var crossbar = DDPServer._InvalidationCrossbar,
+				var _id = this._id,
+					crossbar = DDPServer._InvalidationCrossbar,
 					field = Object.keys(fieldData)[0],
 					copy = _.clone(fieldData)[field],
 					max = copy.length,
