@@ -128,8 +128,8 @@ Meteor.publish('author', function (authorId) {
 // doc.reviews = [{data}, {data}]
 
 // Client
-// send true increases by 5 the interests and false decreases
-Meteor.call('changePagination', 'interests', true);
+// skip 5 interest and show the next 5
+Meteor.call('changePagination', 'authorId', 'interests', 5);
 ```
 ## Publish.cursor (cursor, sub, collectionName)
 publishes a cursor, `collectionName` is not required
