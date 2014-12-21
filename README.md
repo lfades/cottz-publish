@@ -182,3 +182,40 @@ page within an array without re run the publication or callback
 * if when the callback is re-executes not called again some method (within an If for example), the method continues to run normally, if you re-call method (because the query is now different) the previous method is replaced with the new
 
 ### Note: do not forget to use this.ready() to finish writing the publication, not included by default.
+
+
+## Limitations
+I keep all cursors by name and if within the same instance is called at the same cursor will stop the first and second replace him (It's the same for all methods not only for `this.cursor`)
+```js
+Meteor.publish('movie', function (directorId) {
+  Publish.relations(this, Movies.find({director: directorId}), function (id, doc) {
+    this.cursor(Meteor.users.find({_id: directorId})); // this cursor will not receive updates
+    this.cursor(Meteor.users.find({_id: doc.producerId}));
+  });
+  
+  return this.ready();
+});
+```
+you can avoid this problem in the following two ways
+```js
+Meteor.publish('movie', function (directorId) {
+  Publish.relations(this, Movies.find({director: directorId}), function (id, doc) {
+    this.cursor(Meteor.users.find({_id: directorId}), function () {
+      this.cursor(Meteor.users.find({_id: doc.producerId}));
+    });
+  });
+  
+  return this.ready();
+});
+```
+this is much better than the first way
+```js
+Meteor.publish('movie', function (directorId) {
+  Publish.relations(this, Movies.find({director: directorId}), function (id, doc) {
+    this.cursor(Meteor.users.find({_id: directorId}), 'users'); // users is the default of Meteor.users
+    this.cursor(Meteor.users.find({_id: doc.producerId}), 'producers');
+  });
+  
+  return this.ready();
+});
+```

@@ -24,8 +24,7 @@ data.quotes = [
 	{
 		_id: '5',
 		name: 'may',
-		user: 'darwin',
-		replies: []
+		user: 'darwin'
 	},
 	{
 		_id: '6',
