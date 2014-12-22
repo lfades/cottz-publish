@@ -3,14 +3,17 @@ HandlerController = function (_id) {
 	this.handlers = [];
 };
 
+HandlerController.prototype.setHandler = function (cursorName, query) {
+	this.name = cursorName;
+	this.query = query;
+};
+
 HandlerController.prototype.add = function (observe, cursorName) {
-	if(typeof cursorName != 'string') {
-		// in this case the cursor was sent instead of the cursor name
-		cursorName = cursorName._cursorDescription.collectionName;
-	}
+	cursorName = cursorName || this.name;
+	observe.query = this.query;
 
 	var oldHandler = this.handlers[cursorName];
-	if(oldHandler)
+	if(oldHandler && _.isEqual(oldHandler.query, this.query))
 		oldHandler.stop();
 
 	this.handlers[cursorName] = observe;
@@ -21,6 +24,7 @@ HandlerController.prototype.add = function (observe, cursorName) {
 HandlerController.prototype.stop = function () {
 	var handlers = this.handlers;
 	for (var key in handlers) {
+		console.log(key, ' ---');
 		handlers[key].stop();
 	};
 	//_.forIn(handlers, function (handler) {

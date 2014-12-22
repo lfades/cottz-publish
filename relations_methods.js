@@ -1,46 +1,36 @@
-RelationsMethods = function (_id, options) {
-	var handlers = options.handlers;
+CursorMethods = function (cursor, query, options) {
+	this.cursor = cursor;
 
-	if(!options.started) {
-		if(handlers[_id]) {
-			console.log('there is already an observer with the id: ' + _id + ' in the cursorName: ' + cursorName);
-		}
-
-		handlers[_id] = new HandlerController(_id);
-	}
-
-	this._id = _id;
-	this.handlers = handlers[_id];
-
+	this._id = options._id;
+	this.handlers = options.handlers;
+	
 	this.sub = options.sub;
 	this.name = options.cursorName;
 };
 
-_.extend(RelationsMethods.prototype, {
-	observe: function (cursor, callbacks) {
-		this.handlers.add(cursor.observe(callbacks), cursor);
+_.extend(CursorMethods.prototype, {
+	observe: function (callbacks) {
+		this.handlers.add(this.cursor.observe(callbacks));
 	},
 	observeChanges: function (cursor, callbacks) {
-		this.handlers.add(cursor.observeChanges(callbacks), cursor);
+		this.handlers.add(this.cursor.observeChanges(callbacks));
 	},
-	// make parameter is a callback
 	// adds a new cursor in a different collection to the main
-	cursor: function (cursor, cursorName, make) {
-		var handlers = this.handlers,
-			withoutMake = typeof cursorName == 'function';
+	publish: function (cursorName, callback) {
+		var withoutCallback = typeof cursorName == 'function';
 
-		if(!cursorName || withoutMake) {
-			if(withoutMake)
-				make = cursorName;
+		if(!cursorName || withoutCallback) {
+			if(withoutCallback)
+				callback = cursorName;
 
-			cursorName = cursor._cursorDescription.collectionName;
+			cursorName = this.name;
 		}
 
-		return handlers.add(publish.prototype.relations(this.sub, {cursor: cursor, name: cursorName}, make), cursorName);
+		return this.handlers.add(publish.prototype.relations(this.sub, {cursor: this.cursor, name: cursorName}, callback));
 	},
 	// designed to change something in the master document while the callbacks are executed
 	// changes to the document are sent to the main document with the return of the callbacks
-	changeParentDoc: function (cursor, callbacks, onRemoved) {
+	changeParentDoc: function (callbacks, onRemoved) {
 		var sub = this.sub,
 			_id = this._id,
 			name = this.name,
@@ -54,7 +44,7 @@ _.extend(RelationsMethods.prototype, {
 			}
 		}
 
-		var observe = cursor.observeChanges({
+		var observe = this.cursor.observeChanges({
 			added: function (id, doc) {
 				result = callbacks.added(id, doc);
 			},
@@ -70,13 +60,10 @@ _.extend(RelationsMethods.prototype, {
 			}
 		});
 
-		this.handlers.add(observe, cursor);
+		this.handlers.add(observe);
 		return result;
 	},
-	// returns an array of elements with all documents in the cursor
-	// when there is a change it will update the element change in the resulting array
-	// and send it back to the collection
-	group: function (cursor, make, field, options) {
+	group: function (make, field, options) {
 		var sub = this.sub,
 			_id = this._id,
 			name = this.name,
@@ -87,7 +74,7 @@ _.extend(RelationsMethods.prototype, {
 				sortField = options.sortField;
 		}
 		
-		var observe = cursor.observe({
+		var observe = this.cursor.observe({
 			addedAt: function (doc, atIndex) {
 				if(sort) {
 					atIndex = sort.indexOf(doc[sortField || '_id']);
@@ -114,37 +101,7 @@ _.extend(RelationsMethods.prototype, {
 			}
 		});
 
-		this.handlers.add(observe, cursor);
+		this.handlers.add(observe);
 		return result;
-	},
-	// designed to paginate a list, works in conjunction with the methods
-	// do not call back to the main callback, only the array is changed in the collection
-	paginate: function (fieldData, limit, infinite) {
-		var sub = this.sub,
-			_id = this._id,
-			name = this.name;
-			
-		var crossbar = DDPServer._InvalidationCrossbar,
-			field = Object.keys(fieldData)[0],
-			copy = _.clone(fieldData)[field],
-			max = copy.length,
-			connectionId = sub.connection.id;
-
-		fieldData[field] = copy.slice(0, limit);
-
-		var listener = crossbar.listen({connection: connectionId, _id: _id, field: field}, function (data) {
-			if(connectionId == data.connection) {
-				var skip = data.skip;
-
-				if(skip >= max && !infinite)
-					return;
-
-				fieldData[field] = infinite ? copy.slice(0, skip): copy.slice(skip, skip + limit);
-				sub.changed(name, data._id, fieldData);
-			}
-		});
-
-		this.handlers.add(listener, field);
-		return fieldData[field];
 	}
 });
