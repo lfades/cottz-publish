@@ -1,7 +1,7 @@
 meteor-publish-with-relations
 =============================
 
-Edit your documents before sending them with PublishWithRelations
+this readme will be updated to development version soon
 
 ## Installation
 
