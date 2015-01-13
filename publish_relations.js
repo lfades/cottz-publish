@@ -24,7 +24,7 @@ publish.prototype.relations = function (sub, options, callback) {
 			sub.added(name, _id, parentDoc);
 	};
 
-	var cursorObserveChanges = cursor.observeChanges({
+	var callbacks = {
 		added: function (id, doc) {
 			_sendData(id, doc, false);
 		},
@@ -39,13 +39,17 @@ publish.prototype.relations = function (sub, options, callback) {
 				delete observes[id];
 			}
 		}
-	});
+	};
+
+	var cursorObserveChanges = options.handler ?
+		options.handler.add(cursor, 'observeChanges', callbacks)
+		:
+		cursor.observeChanges(callbacks);
 
 	function stopCursor () {
 		cursorObserveChanges.stop();
 
 		for (var key in observes) {
-			console.log(key);
 			observes[key].stop();
 		};
 
@@ -65,10 +69,10 @@ function relationsMethods (_id, options) {
 
 	if(!options.started) {
 		if(handlers[_id]) {
-			console.log('there is already an observer with the id: ' + _id + ' in the cursorName: ' + cursorName);
+			throw new Error('there is already an observer with the id: ' + _id + ' in the cursorName: ' + cursorName);
 		}
 
-		handlers[_id] = new HandlerController(_id);
+		handlers[_id] = new CursorController();
 	}
 
 	this._id = _id;
@@ -78,16 +82,18 @@ function relationsMethods (_id, options) {
 	this.name = options.cursorName;
 };
 
-relationsMethods.prototype.cursor = function (collection, query, options) {
-	if(!collection.find)
-		throw new Error('you must send a meteor collection as the first parameter');
+relationsMethods.prototype.cursor = function (cursor, name) {
+	if (!cursor)
+		throw new Error("you're not sending the cursor");
+	/*if (!collection.find) {
+		console.log('you must send a mongo collection as the first parameter to this.cursor, check github for the latest updates to the api');
+		return this.sub.ready();
+		// throw new Error('you must send a meteor collection as the first parameter');
+	}*/
+	name = name || cursor._cursorDescription.collectionName;
+	this.handler = this.handlers.set(name);
 
-	var name = collection._name;
-	var cursor = collection.find(query, options);
-
-	this.handlers.setHandler(name, query);
-
-	return new CursorMethods(cursor, query, this);
+	return new CursorMethods(cursor, this);
 };
 // designed to paginate a list, works in conjunction with the methods
 // do not call back to the main callback, only the array is changed in the collection
