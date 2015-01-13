@@ -85,11 +85,7 @@ function relationsMethods (_id, options) {
 relationsMethods.prototype.cursor = function (cursor, name) {
 	if (!cursor)
 		throw new Error("you're not sending the cursor");
-	/*if (!collection.find) {
-		console.log('you must send a mongo collection as the first parameter to this.cursor, check github for the latest updates to the api');
-		return this.sub.ready();
-		// throw new Error('you must send a meteor collection as the first parameter');
-	}*/
+	
 	name = name || cursor._cursorDescription.collectionName;
 	this.handler = this.handlers.set(name);
 

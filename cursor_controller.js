@@ -62,9 +62,3 @@ handlerController.prototype.callbacksFor = function (eventName, handlerName, arg
 };
 
 handlerController.prototype.stop = stop;
-/*
-var c = this.cursor(Grupos, {_id: userId})
-c.changeParentDoc(function () {
-
-});
-c.publish();*/
