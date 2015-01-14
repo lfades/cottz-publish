@@ -2,7 +2,7 @@ Package.describe({
   name: 'cottz:publish',
   summary: "Edit your documents before sending without too much stress",
   version: "2.0.0",
-  git: "https://github.com/Goluis/meteor-publish.git"
+  git: "https://github.com/Goluis/cottz-publish.git"
 });
 
 Package.onUse(function(api) {
