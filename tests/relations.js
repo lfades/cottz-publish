@@ -76,7 +76,7 @@ Tinytest.addAsync('Relations - cursor basic', function (test, done) {
 
 	Meteor.publish(publish, function () {
 		Publish.relations(this, quotes.find(), function (id, doc) {
-			this.cursor(products.find({quoteId: id}));
+			this.cursor(products.find({quoteId: id})).publish();
 		});
 		return this.ready();
 	});
@@ -134,13 +134,14 @@ Tinytest.addAsync('Relations - cursor', function (test, done) {
 	Meteor.publish(publish, function () {
 		Publish.relations(this, quotes.find(), function (id, doc) {
 			this.cursor(products.find({quoteId: id}), function (prodId, prod) {
-				var prodInfo = this.changeParentDoc(productsInfo.find({prodId: prodId}), function (prodInfoId, prodInfo) {
+				var prodInfo = this.cursor(productsInfo.find({prodId: prodId}))
+				.changeParentDoc(function (prodInfoId, prodInfo) {
 					return prodInfo;
 				});
 
 				prod.color = prodInfo.color;
 				prod.info = prodInfo.info;
-			});
+			}).publish();
 		});
 		return this.ready();
 	});
@@ -193,7 +194,7 @@ Tinytest.addAsync('Relations - changeParentDoc', function (test, done) {
 
 	Meteor.publish(publish, function () {
 		Publish.relations(this, quotes.find(), function (id, doc) {
-			var user = this.changeParentDoc(users.find({_id: doc.user}), function (id, doc) {
+			var user = this.cursor(users.find({_id: doc.user})).changeParentDoc(function (id, doc) {
 				return {userProfile: doc.profile};
 			});
 

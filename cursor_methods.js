@@ -1,43 +1,51 @@
 CursorMethods = function (cursor, options) {
 	this.cursor = cursor;
-	this.handler = options.handler;
-
-	this._id = options._id;
-	
-	this.sub = options.sub;
-	this.name = options.cursorName;
+	for (var prop in options) {
+		if(options.hasOwnProperty(prop))
+			this[prop] = options[prop];
+	}
 };
 
 _.extend(CursorMethods.prototype, {
 	observe: function (callbacks) {
-		this.handler.add(this.cursor, 'observe', callbacks);
+		return this.handler.add(this.cursor.observe(callbacks));
 	},
 	observeChanges: function (callbacks) {
-		this.handler.add(this.cursor, 'observeChanges', callbacks);
+		return this.handler.add(this.cursor.observeChanges(callbacks));
 	},
 	// adds a new cursor in a different collection to the main
-	publish: function (cursorName, callback) {
-		var withoutCallback = typeof cursorName == 'function';
+	publish: function (callback) {
+		var sub = this.sub;
+		var collection = this.collection;
 
-		if(!cursorName || withoutCallback) {
-			if(withoutCallback)
-				callback = cursorName;
+		if (callback) {
+			var stop = publish.prototype.relations(sub, {
+				cursor: this.cursor,
+				name: collection
+			}, callback);
 
-			cursorName = null;
+			return this.handler.add(stop);
+		} else {
+			// basic cursor
+			return this.observeChanges({
+				added: function (id, doc) {
+					sub.added(collection, id, doc);
+				},
+				changed: function (id, doc) {
+					sub.changed(collection, id, doc);
+				},
+				removed: function (id) {
+					sub.removed(collection, id);
+				}
+			});
 		}
-
-		return publish.prototype.relations(this.sub, {
-			cursor: this.cursor,
-			name: cursorName,
-			handler: this.handler
-		}, callback);
 	},
 	// designed to change something in the master document while the callbacks are executed
 	// changes to the document are sent to the main document with the return of the callbacks
 	changeParentDoc: function (callbacks, onRemoved) {
 		var sub = this.sub,
 			_id = this._id,
-			name = this.name,
+			collection = this.parentCollection,
 			result = {};
 		
 		if (typeof callbacks == 'function') {
@@ -55,21 +63,22 @@ _.extend(CursorMethods.prototype, {
 			changed: function (id, doc) {
 				var changes = callbacks.changed && callbacks.changed(id, doc);
 				if(changes)
-					sub.changed(name, _id, changes);
+					sub.changed(collection, _id, changes);
 			},
 			removed: function (id) {
 				var changes = callbacks.removed && callbacks.removed(id);
 				if(changes)
-					sub.changed(name, _id, changes);
+					sub.changed(collection, _id, changes);
 			}
 		});
 
 		return result;
 	},
+	// I'm thinking of deleting this method, I do not find great usability
 	group: function (make, field, options) {
 		var sub = this.sub,
 			_id = this._id,
-			name = this.name,
+			collection = this.parentCollection,
 			result = [];
 
 		if(options) {
@@ -95,12 +104,13 @@ _.extend(CursorMethods.prototype, {
 				result[atIndex] = changes;
 				changesObj[field] = result;
 
-				sub.changed(name, _id, changesObj);
+				console.log(collection, _id);
+				sub.changed(collection, _id, changesObj);
 			},
 			removedAt: function (oldDoc, atIndex) {
 				var cb = options.onRemoved;
 				if(cb)
-					sub.changed(name, _id, cb(oldDoc, atIndex));
+					sub.changed(collection, _id, cb(oldDoc, atIndex));
 			}
 		});
 

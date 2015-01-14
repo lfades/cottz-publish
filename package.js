@@ -1,6 +1,6 @@
 Package.describe({
   summary: "Edit the documents to your liking before sending",
-  version: "2.5.0",
+  version: "3.0.0",
   git: "https://github.com/Goluis/meteor-publish-with-relations.git"
 });
 
@@ -27,7 +27,7 @@ function configure (api) {
 
   api.addFiles('publish.js', 'server');
   api.addFiles('publish_relations.js', 'server');
-  api.addFiles('cursor_controller.js', 'server');
+  api.addFiles('handler_controller.js', 'server');
   api.addFiles('cursor_methods.js', 'server');
   api.addFiles('methods.js', 'server');
 };

@@ -11,7 +11,7 @@ publish.prototype.relations = function (sub, options, callback) {
 			var methods = new relationsMethods(_id, {
 				sub: sub,
 				started: addStarted,
-				cursorName: name,
+				collection: name,
 				handlers: observes
 			});
 
@@ -24,7 +24,7 @@ publish.prototype.relations = function (sub, options, callback) {
 			sub.added(name, _id, parentDoc);
 	};
 
-	var callbacks = {
+	var cursorObserveChanges = cursor.observeChanges({
 		added: function (id, doc) {
 			_sendData(id, doc, false);
 		},
@@ -39,12 +39,7 @@ publish.prototype.relations = function (sub, options, callback) {
 				delete observes[id];
 			}
 		}
-	};
-
-	var cursorObserveChanges = options.handler ?
-		options.handler.add(cursor, 'observeChanges', callbacks)
-		:
-		cursor.observeChanges(callbacks);
+	});
 
 	function stopCursor () {
 		cursorObserveChanges.stop();
@@ -72,22 +67,23 @@ function relationsMethods (_id, options) {
 			throw new Error('there is already an observer with the id: ' + _id + ' in the cursorName: ' + cursorName);
 		}
 
-		handlers[_id] = new CursorController();
+		handlers[_id] = new HandlerController();
 	}
 
 	this._id = _id;
 	this.handlers = handlers[_id];
 	
 	this.sub = options.sub;
-	this.name = options.cursorName;
+	this.parentCollection = options.collection;
 };
 
-relationsMethods.prototype.cursor = function (cursor, name) {
+relationsMethods.prototype.cursor = function (cursor, collection) {
 	if (!cursor)
 		throw new Error("you're not sending the cursor");
 	
-	name = name || cursor._cursorDescription.collectionName;
-	this.handler = this.handlers.set(name);
+	collection = collection || cursor._cursorDescription.collectionName;
+	this.handler = this.handlers.set(collection);
+	this.collection = collection;
 
 	return new CursorMethods(cursor, this);
 };
@@ -96,7 +92,7 @@ relationsMethods.prototype.cursor = function (cursor, name) {
 relationsMethods.prototype.paginate = function (fieldData, limit, infinite) {
 	var sub = this.sub,
 		_id = this._id,
-		name = this.cursorName,
+		collection = this.parentCollection,
 		handlers = this.handlers.handlers;
 		
 	var crossbar = DDPServer._InvalidationCrossbar,
@@ -115,7 +111,7 @@ relationsMethods.prototype.paginate = function (fieldData, limit, infinite) {
 				return;
 
 			fieldData[field] = infinite ? copy.slice(0, skip): copy.slice(skip, skip + limit);
-			sub.changed(name, data._id, fieldData);
+			sub.changed(collection, data._id, fieldData);
 		}
 	});
 
