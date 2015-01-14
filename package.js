@@ -1,7 +1,8 @@
 Package.describe({
-  summary: "Edit the documents to your liking before sending",
-  version: "3.0.0",
-  git: "https://github.com/Goluis/meteor-publish-with-relations.git"
+  name: 'cottz:publish',
+  summary: "Edit your documents before sending without too much stress",
+  version: "2.0.0",
+  git: "https://github.com/Goluis/meteor-publish.git"
 });
 
 Package.onUse(function(api) {
