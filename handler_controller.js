@@ -1,24 +1,4 @@
-HandlerController = function (_id) {
-	this._id = _id;
-	this.handlers = [];
-};
-
-HandlerController.prototype.add = function (observe, cursorName) {
-	if(typeof cursorName != 'string') {
-		// in this case the cursor was sent instead of the cursor name
-		cursorName = cursorName._cursorDescription.collectionName;
-	}
-
-	var oldHandler = this.handlers[cursorName];
-	if(oldHandler)
-		oldHandler.stop();
-
-	this.handlers[cursorName] = observe;
-
-	return observe;
-};
-
-HandlerController.prototype.stop = function () {
+function stop () {
 	var handlers = this.handlers;
 	for (var key in handlers) {
 		handlers[key].stop();
@@ -27,3 +7,27 @@ HandlerController.prototype.stop = function () {
 	//	handler.stop();
 	//});
 };
+
+HandlerController = function () {
+	this.handlers = [];
+};
+
+HandlerController.prototype.set = function (name) {
+	var oldHandler = this.handlers[name];
+	if (oldHandler) oldHandler.stop();
+
+	return this.handlers[name] = new cursorController();
+};
+
+HandlerController.prototype.stop = stop;
+
+function cursorController () {
+	this.handlers = [];
+};
+
+cursorController.prototype.add = function (handler) {
+	this.handlers.push(handler);
+	return handler;
+};
+
+cursorController.prototype.stop = stop;
