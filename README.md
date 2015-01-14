@@ -1,4 +1,4 @@
-meteor-publish-with-relations
+cottz-publish
 =============================
 
 Edit your documents before sending without too much stress
