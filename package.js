@@ -26,9 +26,8 @@ function configure (api) {
 
   api.use('underscore', 'server');
 
-  api.addFiles('publish.js', 'server');
   api.addFiles('publish_relations.js', 'server');
-  api.addFiles('handler_controller.js', 'server');
   api.addFiles('cursor_methods.js', 'server');
+  api.addFiles('handler_controller.js', 'server');
   api.addFiles('methods.js', 'server');
 };

@@ -1,119 +1,151 @@
-CursorMethods = function (cursor, options) {
-	this.cursor = cursor;
-	for (var prop in options) {
-		if(options.hasOwnProperty(prop))
-			this[prop] = options[prop];
-	}
+CursorMethods = function (sub, handlers, parentId, collection) {
+	this.sub = sub;
+	this.userId = sub.userId;
+	this.handler = handlers || new HandlerController();
+
+	this._id = parentId;
+	this.collection = collection;
 };
 
-_.extend(CursorMethods.prototype, {
-	observe: function (callbacks) {
-		return this.handler.add(this.cursor.observe(callbacks));
-	},
-	observeChanges: function (callbacks) {
-		return this.handler.add(this.cursor.observeChanges(callbacks));
-	},
-	// adds a new cursor in a different collection to the main
-	publish: function (callback) {
-		var sub = this.sub;
-		var collection = this.collection;
+CursorMethods.prototype.observe = function (cursor, callbacks) {
+	this.handler.add(cursor.observe(callbacks), cursor._getCollectionName());
+};
 
-		if (callback) {
-			var stop = publish.prototype.relations(sub, {
-				cursor: this.cursor,
-				name: collection
-			}, callback);
+CursorMethods.prototype.observeChanges = function (cursor, callbacks) {
+	this.handler.add(cursor.observeChanges(callbacks), cursor._getCollectionName());
+};
 
-			return this.handler.add(stop);
-		} else {
-			// basic cursor
-			return this.observeChanges({
-				added: function (id, doc) {
-					sub.added(collection, id, doc);
-				},
-				changed: function (id, doc) {
-					sub.changed(collection, id, doc);
-				},
-				removed: function (id) {
-					sub.removed(collection, id);
-				}
-			});
-		}
-	},
-	// designed to change something in the master document while the callbacks are executed
-	// changes to the document are sent to the main document with the return of the callbacks
-	changeParentDoc: function (callbacks, onRemoved) {
-		var sub = this.sub,
-			_id = this._id,
-			collection = this.parentCollection,
-			result = {};
-		
-		if (typeof callbacks == 'function') {
-			callbacks = {
-				added: callbacks,
-				changed: callbacks,
-				removed: onRemoved
+CursorMethods.prototype.cursor = function (cursor, callbacks) {
+	var sub = this.sub;
+
+	var name = cursor._getCollectionName();
+	this.handler.add(name);
+	var handler = this.handler.handlers[name];
+
+	if (!cursor)
+		throw new Error("you're not sending the cursor");
+
+	if (callbacks)
+		callbacks = this._getCallbacks(callbacks);
+
+	var observeChanges = cursor.observeChanges({
+		added: function (id, doc) {
+			if (name == 'cards')
+				console.log('card added _id: ', id);
+			
+			if (callbacks) {
+				callbacks.added.call(new CursorMethods(sub, handler.add(id), id, name), id, doc);
 			}
+			
+			sub.added(name, id, doc);
+		},
+		changed: function (id, doc) {
+			if (name == 'cards')
+				console.log(doc);
+			
+			if (callbacks)
+				callbacks.added.call(new CursorMethods(sub, handler.add(id), id, name), id, doc);
+
+			sub.changed(name, id, doc);
+		},
+		removed: function (id) {
+			if (name == 'cards')
+				console.log('card removed _id: ', id);
+
+			if (callbacks)
+				callbacks.removed(id);
+
+			sub.removed(name, id);
 		}
+	});
 
-		this.observeChanges({
-			added: function (id, doc) {
-				result = callbacks.added && callbacks.added(id, doc);
-			},
-			changed: function (id, doc) {
-				var changes = callbacks.changed && callbacks.changed(id, doc);
-				if(changes)
-					sub.changed(collection, _id, changes);
-			},
-			removed: function (id) {
-				var changes = callbacks.removed && callbacks.removed(id);
-				if(changes)
-					sub.changed(collection, _id, changes);
-			}
-		});
+	return handler.set(observeChanges);
+};
 
-		return result;
-	},
-	// I'm thinking of deleting this method, I do not find great usability
-	group: function (make, field, options) {
-		var sub = this.sub,
-			_id = this._id,
-			collection = this.parentCollection,
-			result = [];
+CursorMethods.prototype.changeParentDoc = function (cursor, callbacks, onRemoved) {
+	var sub = this.sub,
+		_id = this.parentId,
+		collection = this.collection,
+		result = {};
+	
+	callbacks = this._getCallbacks(callbacks, onRemoved);
 
-		if(options) {
-			var sort = options.sort,
-				sortField = options.sortField;
+	this.handlers.add(cursor.observeChanges({
+		added: function (id, doc) {
+			result = callbacks.added(id, doc);
+		},
+		changed: function (id, doc) {
+			var changes = callbacks.changed(id, doc);
+			if(changes)
+				sub.changed(collection, _id, changes);
+		},
+		removed: function (id) {
+			var changes = callbacks.removed(id);
+			if(changes)
+				sub.changed(collection, _id, changes);
 		}
-		
-		this.observe({
-			addedAt: function (doc, atIndex) {
-				if(sort) {
-					atIndex = sort.indexOf(doc[sortField || '_id']);
-					result[atIndex] = make(doc, atIndex);
-				} else
-					result.push(make(doc, atIndex));
-			},
-			changedAt: function (doc, oldDoc, atIndex) {
-				if(sort)
-					atIndex = sort.indexOf(doc[sortField || '_id']);
+	}), cursor._getCollectionName());
 
-				var changes = make(doc, atIndex, oldDoc),
-					changesObj = {};
+	return result;
+};
 
-				result[atIndex] = changes;
-				changesObj[field] = result;
+CursorMethods.prototype.group = function (cursor, callbacks, field, options) {
+	var sub = this.sub,
+		_id = this._id,
+		collection = this.collection,
+		result = [];
 
-				console.log(collection, _id);
-				sub.changed(collection, _id, changesObj);
-			},
-			removedAt: function (oldDoc, atIndex) {
-				var cb = options.onRemoved;
-				if(cb)
-					sub.changed(collection, _id, cb(oldDoc, atIndex));
-			}
-		});
-
-		return result;
+	if(options) {
+		var sort = options.sort,
+			sortField = options.sortField;
 	}
-});
+	callbacks = this._getCallbacks(callbacks);
+	
+	this.handlers.add(cursor.observe({
+		addedAt: function (doc, atIndex) {
+			if(sort) {
+				atIndex = sort.indexOf(doc[sortField || '_id']);
+				result[atIndex] = callbacks.added(doc, atIndex);
+			} else
+				result.push(callbacks.added(doc, atIndex));
+		},
+		changedAt: function (doc, oldDoc, atIndex) {
+			if(sort)
+				atIndex = sort.indexOf(doc[sortField || '_id']);
+
+			var changes = callbacks.changed(doc, atIndex, oldDoc),
+				changesObj = {};
+
+			result[atIndex] = changes;
+			changesObj[field] = result;
+
+			sub.changed(collection, _id, changesObj);
+		},
+		removedAt: function (oldDoc, atIndex) {
+			var cb = callbacks.removed;
+			if(cb)
+				sub.changed(collection, _id, cb(oldDoc, atIndex));
+		}
+	}), cursor._getCollectionName());
+
+	return result;
+};
+
+CursorMethods.prototype._getCallbacks = function (cb, onRemoved) {
+	var callbacks;
+	if (typeof cb == 'function') {
+		callbacks = {
+			added: cb,
+			changed: cb,
+			removed: onRemoved || function () {}
+		};
+	} else {
+		var methods = ['added', 'changed', 'removed'];
+		for (var i = 0; i < methods.length; i ++) {
+			var methodName = methods[i]; 
+			if (!callbacks[methodName]) callbacks[methodName] = function () {};
+		}
+	}
+
+	return callbacks;
+};

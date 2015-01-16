@@ -1,33 +1,27 @@
-function stop () {
-	var handlers = this.handlers;
-	for (var key in handlers) {
-		handlers[key].stop();
-	};
-	//_.forIn(handlers, function (handler) {
-	//	handler.stop();
-	//});
-};
-
 HandlerController = function () {
 	this.handlers = [];
 };
 
-HandlerController.prototype.set = function (name) {
-	var oldHandler = this.handlers[name];
-	if (oldHandler) oldHandler.stop();
-
-	return this.handlers[name] = new cursorController();
+HandlerController.prototype.set = function (observe) {
+	this.handler = observe;
 };
 
-HandlerController.prototype.stop = stop;
+HandlerController.prototype.add = function (name) {
+	var oldHandler = this.handlers[name];
+	if (oldHandler)
+		oldHandler.stop();
 
-function cursorController () {
+	return this.handlers[name] = new HandlerController();
+};
+
+HandlerController.prototype.stop = function (handler, name) {
+	var handlers = this.handlers;
+
+	this.handler && this.handler.stop();
+
+	for (var key in handlers) {
+		handlers[key].stop();
+	};
+
 	this.handlers = [];
 };
-
-cursorController.prototype.add = function (handler) {
-	this.handlers.push(handler);
-	return handler;
-};
-
-cursorController.prototype.stop = stop;
