@@ -6,7 +6,7 @@ Edit your documents before sending without too much stress
 ## Installation
 
 ```sh
-$ meteor add cottz:publish@2.0.0
+$ meteor add cottz:publish
 ```
 
 provides a number of methods to easily manipulate data using internally observe and observeChanges in the server

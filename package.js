@@ -1,7 +1,7 @@
 Package.describe({
   name: 'cottz:publish',
   summary: "Edit your documents before sending without too much stress",
-  version: "2.0.0",
+  version: "2.1.1",
   git: "https://github.com/Goluis/cottz-publish.git"
 });
 
