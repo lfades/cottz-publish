@@ -5,6 +5,8 @@ Edit your documents before sending without too much stress
 
 ## Installation
 
+NOTE: this package is now called cottz:publish-relations and is hosted on https://github.com/Goluis/cottz-publish-relations
+
 ```sh
 $ meteor add cottz:publish
 ```
