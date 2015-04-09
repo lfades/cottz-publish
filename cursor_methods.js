@@ -104,7 +104,7 @@ _.extend(CursorMethods.prototype, {
 				result[atIndex] = changes;
 				changesObj[field] = result;
 
-				console.log(collection, _id);
+				// console.log(collection, _id);
 				sub.changed(collection, _id, changesObj);
 			},
 			removedAt: function (oldDoc, atIndex) {
